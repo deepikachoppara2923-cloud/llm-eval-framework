@@ -1,0 +1,4 @@
+prompt,expected_keywords
+Explain machine learning,"data,algorithm,model"
+What is deep learning?,"neural networks,layers"
+Explain NLP,"language,text"
