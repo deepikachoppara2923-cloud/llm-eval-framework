@@ -4,4 +4,6 @@ cohere
 groq
 openai
 requests
-numpy
+anthropic
+google-generativeai
+plotly
