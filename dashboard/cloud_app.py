@@ -97,12 +97,15 @@ if st.button("Evaluate Prompt"):
 
                 response = ai_response.choices[0].message.content
 
+                if not response:
+                    response = "Groq returned empty response."
+
             # ---------------- OPENROUTER ---------------- #
 
             elif model == "OpenRouter Mixtral":
 
                 ai_response = openrouter_client.chat.completions.create(
-                    model="openai/gpt-3.5-turbo",
+                    model="meta-llama/llama-3-8b-instruct:free",
                     messages=[
                         {
                             "role": "user",
@@ -112,6 +115,9 @@ if st.button("Evaluate Prompt"):
                 )
 
                 response = ai_response.choices[0].message.content
+
+                if not response:
+                    response = "OpenRouter returned empty response."
 
             else:
 
