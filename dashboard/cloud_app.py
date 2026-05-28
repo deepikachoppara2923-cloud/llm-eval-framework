@@ -78,7 +78,7 @@ if st.button("Evaluate Prompt"):
         try:
 
             ai_response = co.chat(
-                model="command-r",
+                model="command-a-03-2025",
                 message=prompt
             )
 
