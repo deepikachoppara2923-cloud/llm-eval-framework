@@ -64,7 +64,7 @@ if st.button("Evaluate Prompt"):
             4
         )
 
-        mmodel_ai = genai.GenerativeModel("gemini-1.5-flash-latest")
+        model_ai = genai.GenerativeModel("gemini-1.5-flash-latest")
 
         try:
 
