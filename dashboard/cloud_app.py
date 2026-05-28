@@ -4,7 +4,9 @@ import random
 import time
 import google.generativeai as genai
 
-genai.configure(api_key="AIzaSyAYpMghmIdZrmB_0EdsK1WTAl7E9aZqVPI")
+genai.configure(
+    api_key=st.secrets["GEMINI_API_KEY"]
+)
 
 st.set_page_config(
     page_title="Enterprise LLMOps Platform",
