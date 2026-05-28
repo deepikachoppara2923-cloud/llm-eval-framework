@@ -66,10 +66,27 @@ if st.button("Evaluate Prompt"):
 
         model_ai = genai.GenerativeModel("gemini-pro")
 
-        ai_response = model_ai.generate_content(prompt)
+        try:
 
-        response = ai_response.text
+            ai_response = model_ai.generate_content(prompt)
 
+            response = ai_response.text
+
+        except Exception as e:
+
+            response = f"""
+        Unable to generate AI response currently.
+
+        Possible reasons:
+        - API quota exceeded
+        - Temporary AI service issue
+        - Network timeout
+
+        Please try again later.
+
+        Technical Error:
+        {str(e)}
+        """
         results.append({
             "Model": model,
             "Latency": latency,
