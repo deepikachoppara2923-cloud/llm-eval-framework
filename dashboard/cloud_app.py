@@ -3,6 +3,8 @@ import pandas as pd
 import random
 import time
 import cohere
+from groq import Groq
+from openai import OpenAI
 
 # ---------------- PAGE CONFIG ---------------- #
 
@@ -12,15 +14,24 @@ st.set_page_config(
     layout="wide"
 )
 
-# ---------------- COHERE CLIENT ---------------- #
+# ---------------- API CLIENTS ---------------- #
 
 co = cohere.Client(
     st.secrets["COHERE_API_KEY"]
 )
 
+groq_client = Groq(
+    api_key=st.secrets["GROQ_API_KEY"]
+)
+
+openrouter_client = OpenAI(
+    api_key=st.secrets["OPENROUTER_API_KEY"],
+    base_url="https://openrouter.ai/api/v1"
+)
+
 # ---------------- TITLE ---------------- #
 
-st.title("🚀 Enterprise LLMOps Evaluation Platform")
+st.title("🚀 Enterprise Multi-LLM Evaluation Platform")
 
 st.markdown("""
 Production-grade AI evaluation and monitoring platform for Large Language Models (LLMs).
@@ -42,11 +53,9 @@ if st.button("Evaluate Prompt"):
     st.info("Running evaluation across multiple LLMs...")
 
     models = [
-        "GPT-4",
-        "Claude",
-        "Gemini",
-        "Llama3",
-        "Mistral"
+        "Cohere Command",
+        "Groq Llama3",
+        "OpenRouter Mixtral"
     ]
 
     results = []
@@ -55,8 +64,67 @@ if st.button("Evaluate Prompt"):
 
         start_time = time.time()
 
-        # Simulated latency
-        time.sleep(random.uniform(1, 3))
+        # ---------------- AI RESPONSE ---------------- #
+
+        try:
+
+            # ---------------- COHERE ---------------- #
+
+            if model == "Cohere Command":
+
+                ai_response = co.chat(
+                    model="command-a-03-2025",
+                    message=prompt
+                )
+
+                response = ai_response.text
+
+            # ---------------- GROQ ---------------- #
+
+            elif model == "Groq Llama3":
+
+                ai_response = groq_client.chat.completions.create(
+                    model="llama3-70b-8192",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                )
+
+                response = ai_response.choices[0].message.content
+
+            # ---------------- OPENROUTER ---------------- #
+
+            elif model == "OpenRouter Mixtral":
+
+                ai_response = openrouter_client.chat.completions.create(
+                    model="mistralai/mixtral-8x7b-instruct",
+                    messages=[
+                        {
+                            "role": "user",
+                            "content": prompt
+                        }
+                    ]
+                )
+
+                response = ai_response.choices[0].message.content
+
+            else:
+
+                response = "No model response generated."
+
+        except Exception as e:
+
+            response = f"""
+Unable to generate AI response currently.
+
+Technical Error:
+{str(e)}
+"""
+
+        # ---------------- METRICS ---------------- #
 
         latency = round(
             time.time() - start_time,
@@ -72,26 +140,6 @@ if st.button("Evaluate Prompt"):
             random.uniform(0.001, 0.005),
             4
         )
-
-        # ---------------- REAL AI RESPONSE ---------------- #
-
-        try:
-
-            ai_response = co.chat(
-                model="command-a-03-2025",
-                message=prompt
-            )
-
-            response = ai_response.text
-
-        except Exception as e:
-
-            response = f"""
-Unable to generate AI response currently.
-
-Technical Error:
-{str(e)}
-"""
 
         results.append({
             "Model": model,
@@ -159,16 +207,18 @@ Technical Error:
 
 # ---------------- FOOTER ---------------- #
 
-st.markdown("---")
+# st.markdown("---")
 
-st.markdown("""
+# st.markdown("""
 ### ⚡ Features
 
-- Multi-LLM Evaluation
-- Latency Monitoring
-- Hallucination Scoring
-- Cost Estimation
-- Cohere API Integration
-- Streamlit Cloud Deployment
-- Enterprise LLMOps Dashboard
-""")
+# - Real Multi-LLM Evaluation
+# - Cohere Integration
+# - Groq Integration
+# - OpenRouter Integration
+# - Latency Monitoring
+# - Hallucination Scoring
+# - Cost Estimation
+# - Streamlit Cloud Deployment
+# - Enterprise LLMOps Dashboard
+# """)
