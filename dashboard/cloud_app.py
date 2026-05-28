@@ -86,7 +86,7 @@ if st.button("Evaluate Prompt"):
             elif model == "Groq Llama3":
 
                 ai_response = groq_client.chat.completions.create(
-                    model="llama3-70b-8192",
+                    model="llama3-8b-8192",
                     messages=[
                         {
                             "role": "user",
@@ -102,7 +102,7 @@ if st.button("Evaluate Prompt"):
             elif model == "OpenRouter Mixtral":
 
                 ai_response = openrouter_client.chat.completions.create(
-                    model="mistralai/mixtral-8x7b-instruct",
+                    model="openai/gpt-3.5-turbo",
                     messages=[
                         {
                             "role": "user",
