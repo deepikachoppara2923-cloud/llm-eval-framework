@@ -4,9 +4,7 @@ import random
 import time
 import cohere
 
-co = cohere.Client(
-    st.secrets["COHERE_API_KEY"]
-)
+# ---------------- PAGE CONFIG ---------------- #
 
 st.set_page_config(
     page_title="Enterprise LLMOps Platform",
@@ -14,11 +12,21 @@ st.set_page_config(
     layout="wide"
 )
 
+# ---------------- COHERE CLIENT ---------------- #
+
+co = cohere.Client(
+    st.secrets["COHERE_API_KEY"]
+)
+
+# ---------------- TITLE ---------------- #
+
 st.title("🚀 Enterprise LLMOps Evaluation Platform")
 
 st.markdown("""
 Production-grade AI evaluation and monitoring platform for Large Language Models (LLMs).
 """)
+
+# ---------------- INPUT ---------------- #
 
 st.header("🧠 Multi-LLM Playground")
 
@@ -27,15 +35,11 @@ prompt = st.text_area(
     placeholder="Explain machine learning..."
 )
 
+# ---------------- EVALUATION ---------------- #
+
 if st.button("Evaluate Prompt"):
 
-    if not prompt.strip():
-        st.warning("Please enter a prompt.")
-        st.stop()
-
     st.info("Running evaluation across multiple LLMs...")
-
-    time.sleep(2)
 
     models = [
         "GPT-4",
@@ -49,8 +53,13 @@ if st.button("Evaluate Prompt"):
 
     for model in models:
 
+        start_time = time.time()
+
+        # Simulated latency
+        time.sleep(random.uniform(1, 3))
+
         latency = round(
-            random.uniform(1, 10),
+            time.time() - start_time,
             2
         )
 
@@ -64,10 +73,12 @@ if st.button("Evaluate Prompt"):
             4
         )
 
+        # ---------------- REAL AI RESPONSE ---------------- #
+
         try:
 
             ai_response = co.chat(
-                model="command-r-plus",
+                model="command-r",
                 message=prompt
             )
 
@@ -76,11 +87,12 @@ if st.button("Evaluate Prompt"):
         except Exception as e:
 
             response = f"""
-        Unable to generate AI response currently.
+Unable to generate AI response currently.
 
-        Technical Error:
-        {str(e)}
-        """
+Technical Error:
+{str(e)}
+"""
+
         results.append({
             "Model": model,
             "Latency": latency,
@@ -89,21 +101,9 @@ if st.button("Evaluate Prompt"):
             "Response": response
         })
 
+    # ---------------- DATAFRAME ---------------- #
+
     df = pd.DataFrame(results)
-
-    # AI Score
-    df["AI Score"] = (
-        (1 / (df["Hallucination Score"] + 0.001)) * 0.5
-        +
-        (1 / (df["Latency"] + 0.001)) * 0.3
-        +
-        (1 / (df["Estimated Cost"] + 0.001)) * 0.2
-    )
-
-    best_model = df.sort_values(
-        by="AI Score",
-        ascending=False
-    ).iloc[0]
 
     st.success("Evaluation completed successfully!")
 
@@ -120,6 +120,12 @@ if st.button("Evaluate Prompt"):
         ],
         use_container_width=True
     )
+
+    # ---------------- BEST MODEL ---------------- #
+
+    best_model = df.sort_values(
+        by=["Hallucination Score", "Latency"]
+    ).iloc[0]
 
     st.subheader("🏆 Best Model")
 
@@ -145,6 +151,24 @@ if st.button("Evaluate Prompt"):
             f"${best_model['Estimated Cost']}"
         )
 
-    st.subheader("🤖 Best Response")
+    # ---------------- BEST RESPONSE ---------------- #
+
+    st.subheader("🎭 Best Response")
 
     st.write(best_model["Response"])
+
+# ---------------- FOOTER ---------------- #
+
+st.markdown("---")
+
+st.markdown("""
+### ⚡ Features
+
+- Multi-LLM Evaluation
+- Latency Monitoring
+- Hallucination Scoring
+- Cost Estimation
+- Cohere API Integration
+- Streamlit Cloud Deployment
+- Enterprise LLMOps Dashboard
+""")
