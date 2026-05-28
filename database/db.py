@@ -1,30 +1,30 @@
-import sqlite3
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-# Connect database
-conn = sqlite3.connect("database/llm_logs.db")
+# PostgreSQL Database URL
+DATABASE_URL = "postgresql://localhost:5432/llm_eval_db"
 
-# Cursor
-cursor = conn.cursor()
-
-# Create table
-cursor.execute("""
-CREATE TABLE IF NOT EXISTS evaluations (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    model_name TEXT,
-    prompt_version TEXT,
-    prompt TEXT,
-    latency REAL,
-    quality_score INTEGER,
-    estimated_cost REAL,
-    hallucination_score INTEGER,
-    consistency_score REAL,
-    approval_status TEXT,
-    response TEXT
+# Create SQLAlchemy Engine
+engine = create_engine(
+    DATABASE_URL,
+    echo=True  # Logs SQL queries (helpful for debugging)
 )
-""")
 
-conn.commit()
+# Create Session Factory
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
 
-print("Database & table created successfully!")
+# Base class for all database models
+Base = declarative_base()
 
-conn.close()
+
+# Dependency to get DB session
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
