@@ -64,11 +64,15 @@ if st.button("Evaluate Prompt"):
             4
         )
 
-        model_ai = genai.GenerativeModel("gemini-1.5-flash-latest")
-
         try:
 
-            ai_response = model_ai.generate_content(prompt)
+            model_ai = genai.GenerativeModel(
+                model_name="models/gemini-1.5-flash"
+            )
+
+            ai_response = model_ai.generate_content(
+                prompt
+            )
 
             response = ai_response.text
 
