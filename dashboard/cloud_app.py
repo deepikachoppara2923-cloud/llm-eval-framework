@@ -2,11 +2,11 @@ import streamlit as st
 import pandas as pd
 import random
 import time
-# import google.generativeai as genai
+import cohere
 
-# genai.configure(
-#    api_key=st.secrets["GEMINI_API_KEY"]
-# )
+co = cohere.Client(
+    st.secrets["COHERE_API_KEY"]
+)
 
 st.set_page_config(
     page_title="Enterprise LLMOps Platform",
@@ -64,22 +64,22 @@ if st.button("Evaluate Prompt"):
             4
         )
 
-        response = f"""
-        AI-generated explanation for:
+        try:
 
-        {prompt}
+            ai_response = co.chat(
+                model="command-r-plus",
+                message=prompt
+            )
 
-        This response was evaluated through the Enterprise LLMOps
-        Evaluation Platform.
+            response = ai_response.text
 
-        The system compared multiple models using:
-        - latency
-        - hallucination risk
-        - estimated inference cost
-        - response quality
+        except Exception as e:
 
-        The best model generated the most optimized response
-        based on evaluation metrics.
+            response = f"""
+        Unable to generate AI response currently.
+
+        Technical Error:
+        {str(e)}
         """
         results.append({
             "Model": model,
