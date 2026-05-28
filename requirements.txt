@@ -4,3 +4,4 @@ cohere
 groq
 openai
 requests
+numpy
