@@ -2,6 +2,9 @@ import streamlit as st
 import pandas as pd
 import random
 import time
+import google.generativeai as genai
+
+genai.configure(api_key="AIzaSyAYpMghmIdZrmB_0EdsK1WTAl7E9aZqVPI")
 
 st.set_page_config(
     page_title="Enterprise LLMOps Platform",
@@ -59,37 +62,11 @@ if st.button("Evaluate Prompt"):
             4
         )
 
-        # Dynamic simulated response
-        response = f"""
-        {model} Explanation:
+        model_ai = genai.GenerativeModel("gemini-1.5-flash")
 
-        Here is a simplified explanation for:
+        ai_response = model_ai.generate_content(prompt)
 
-        '{prompt}'
-
-        This topic involves important concepts in Artificial Intelligence,
-        Machine Learning, and modern enterprise systems.
-
-        The model analyzed the prompt and generated a contextual response
-        based on the requested subject.
-
-        Key Highlights:
-        - Core concepts were identified dynamically
-        - The response was optimized for clarity
-        - The explanation focuses on practical understanding
-        - Enterprise AI workflows and reasoning patterns were considered
-
-        Potential Applications:
-        - AI-powered assistants
-        - Automation systems
-        - Enterprise analytics
-        - Intelligent decision-making
-        - Real-time AI workflows
-
-        This response was generated through the multi-LLM evaluation pipeline
-        and ranked based on latency, estimated inference cost,
-        and hallucination risk scoring.
-        """
+        response = ai_response.text
 
         results.append({
             "Model": model,

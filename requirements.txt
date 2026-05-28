@@ -132,3 +132,4 @@ pytest
 sqlalchemy
 psycopg2-binary
 alembic
+google-generativeai
