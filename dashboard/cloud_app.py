@@ -1,8 +1,8 @@
 import streamlit as st
 import pandas as pd
-import random
 import time
 import cohere
+import re
 from groq import Groq
 from openai import OpenAI
 
@@ -126,28 +126,121 @@ Technical Error:
 {str(e)}
 """
 
-        # ---------------- METRICS ---------------- #
+        # ---------------- LATENCY ---------------- #
 
         latency = round(
             time.time() - start_time,
             2
         )
 
-        hallucination_score = round(
-            random.uniform(0.01, 0.08),
-            3
-        )
+        # ---------------- REAL AI EVALUATION ---------------- #
+
+        judge_prompt = f"""
+You are an expert AI evaluator.
+
+Evaluate the following AI response.
+
+USER PROMPT:
+{prompt}
+
+MODEL RESPONSE:
+{response}
+
+Evaluate on:
+
+1. Correctness (0-10)
+2. Clarity (0-10)
+3. Completeness (0-10)
+4. Hallucination Risk (0-10 where lower is better)
+
+Return ONLY this format:
+
+Correctness: <score>
+Clarity: <score>
+Completeness: <score>
+Hallucination: <score>
+"""
+
+        try:
+
+            judge_response = co.chat(
+                model="command-a-03-2025",
+                message=judge_prompt
+            )
+
+            evaluation_text = judge_response.text
+
+            correctness_match = re.search(
+                r"Correctness:\s*(\d+)",
+                evaluation_text
+            )
+
+            clarity_match = re.search(
+                r"Clarity:\s*(\d+)",
+                evaluation_text
+            )
+
+            completeness_match = re.search(
+                r"Completeness:\s*(\d+)",
+                evaluation_text
+            )
+
+            hallucination_match = re.search(
+                r"Hallucination:\s*(\d+)",
+                evaluation_text
+            )
+
+            correctness_score = int(
+                correctness_match.group(1)
+            ) if correctness_match else 5
+
+            clarity_score = int(
+                clarity_match.group(1)
+            ) if clarity_match else 5
+
+            completeness_score = int(
+                completeness_match.group(1)
+            ) if completeness_match else 5
+
+            hallucination_score = int(
+                hallucination_match.group(1)
+            ) if hallucination_match else 5
+
+        except Exception:
+
+            correctness_score = 5
+            clarity_score = 5
+            completeness_score = 5
+            hallucination_score = 5
+
+        # ---------------- REAL COST ESTIMATION ---------------- #
 
         estimated_cost = round(
-            random.uniform(0.001, 0.005),
+            len(response.split()) * 0.00002,
             4
+        )
+
+        # ---------------- OVERALL SCORE ---------------- #
+
+        overall_score = round(
+            (
+                correctness_score
+                + clarity_score
+                + completeness_score
+                + (10 - hallucination_score)
+            ) / 4,
+            2
         )
 
         results.append({
             "Model": model,
             "Latency": latency,
+            "Correctness": correctness_score,
+            "Clarity": clarity_score,
+            "Completeness": completeness_score,
             "Hallucination Score": hallucination_score,
             "Estimated Cost": estimated_cost,
+            "Overall Score": overall_score,
             "Response": response
         })
 
@@ -164,8 +257,12 @@ Technical Error:
             [
                 "Model",
                 "Latency",
+                "Correctness",
+                "Clarity",
+                "Completeness",
                 "Hallucination Score",
-                "Estimated Cost"
+                "Estimated Cost",
+                "Overall Score"
             ]
         ],
         use_container_width=True
@@ -174,14 +271,15 @@ Technical Error:
     # ---------------- BEST MODEL ---------------- #
 
     best_model = df.sort_values(
-        by=["Hallucination Score", "Latency"]
+        by=["Overall Score", "Latency"],
+        ascending=[False, True]
     ).iloc[0]
 
     st.subheader("🏆 Best Model")
 
     st.success(best_model["Model"])
 
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
 
     with col1:
         st.metric(
@@ -191,11 +289,17 @@ Technical Error:
 
     with col2:
         st.metric(
-            "Hallucination Score",
+            "Hallucination",
             best_model["Hallucination Score"]
         )
 
     with col3:
+        st.metric(
+            "Overall Score",
+            best_model["Overall Score"]
+        )
+
+    with col4:
         st.metric(
             "Estimated Cost",
             f"${best_model['Estimated Cost']}"
