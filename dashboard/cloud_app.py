@@ -59,9 +59,36 @@ if st.button("Evaluate Prompt"):
             4
         )
 
+        # Dynamic simulated response
         response = f"""
-        {model} generated a high-quality response for:
+        {model} Explanation:
+
+        Here is a simplified explanation for:
+
         '{prompt}'
+
+        This topic involves important concepts in Artificial Intelligence,
+        Machine Learning, and modern enterprise systems.
+
+        The model analyzed the prompt and generated a contextual response
+        based on the requested subject.
+
+        Key Highlights:
+        - Core concepts were identified dynamically
+        - The response was optimized for clarity
+        - The explanation focuses on practical understanding
+        - Enterprise AI workflows and reasoning patterns were considered
+
+        Potential Applications:
+        - AI-powered assistants
+        - Automation systems
+        - Enterprise analytics
+        - Intelligent decision-making
+        - Real-time AI workflows
+
+        This response was generated through the multi-LLM evaluation pipeline
+        and ranked based on latency, estimated inference cost,
+        and hallucination risk scoring.
         """
 
         results.append({
