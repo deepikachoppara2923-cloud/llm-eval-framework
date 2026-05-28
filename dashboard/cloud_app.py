@@ -9,7 +9,7 @@ from openai import OpenAI
 # ---------------- PAGE CONFIG ---------------- #
 
 st.set_page_config(
-    page_title="Enterprise LLMOps Platform",
+    page_title="Enterprise Multi-LLM Evaluation Platform",
     page_icon="🚀",
     layout="wide"
 )
@@ -43,12 +43,16 @@ st.header("🧠 Multi-LLM Playground")
 
 prompt = st.text_area(
     "Enter your prompt:",
-    placeholder="Explain machine learning..."
+    placeholder="Explain Kubernetes vs Docker..."
 )
 
 # ---------------- EVALUATION ---------------- #
 
 if st.button("Evaluate Prompt"):
+
+    if prompt.strip() == "":
+        st.warning("Please enter a prompt.")
+        st.stop()
 
     st.info("Running evaluation across multiple LLMs...")
 
@@ -63,8 +67,6 @@ if st.button("Evaluate Prompt"):
     for model in models:
 
         start_time = time.time()
-
-        # ---------------- AI RESPONSE ---------------- #
 
         try:
 
@@ -113,7 +115,7 @@ if st.button("Evaluate Prompt"):
 
             else:
 
-                response = "No model response generated."
+                response = "No response generated."
 
         except Exception as e:
 
@@ -203,22 +205,16 @@ Technical Error:
 
     st.subheader("🎭 Best Response")
 
-    st.write(best_model["Response"])
+    with st.expander("View Full Response", expanded=True):
 
-# ---------------- FOOTER ---------------- #
+        st.markdown(best_model["Response"])
 
-# st.markdown("---")
+    # ---------------- ALL MODEL RESPONSES ---------------- #
 
-# st.markdown("""
-### ⚡ Features
+    st.subheader("🧠 Responses From All Models")
 
-# - Real Multi-LLM Evaluation
-# - Cohere Integration
-# - Groq Integration
-# - OpenRouter Integration
-# - Latency Monitoring
-# - Hallucination Scoring
-# - Cost Estimation
-# - Streamlit Cloud Deployment
-# - Enterprise LLMOps Dashboard
-# """)
+    for result in results:
+
+        with st.expander(f"{result['Model']} Response"):
+
+            st.markdown(result["Response"])
