@@ -4,7 +4,6 @@ import time
 import cohere
 import re
 from groq import Groq
-from openai import OpenAI
 
 # ---------------- PAGE CONFIG ---------------- #
 
@@ -22,11 +21,6 @@ co = cohere.Client(
 
 groq_client = Groq(
     api_key=st.secrets["GROQ_API_KEY"]
-)
-
-openrouter_client = OpenAI(
-    api_key=st.secrets["OPENROUTER_API_KEY"],
-    base_url="https://openrouter.ai/api/v1"
 )
 
 # ---------------- TITLE ---------------- #
@@ -58,8 +52,7 @@ if st.button("Evaluate Prompt"):
 
     models = [
         "Cohere Command",
-        "Groq Llama3",
-        "OpenRouter Mixtral"
+        "Groq Llama3"
     ]
 
     results = []
@@ -67,6 +60,8 @@ if st.button("Evaluate Prompt"):
     for model in models:
 
         start_time = time.time()
+
+        response = ""
 
         try:
 
@@ -92,38 +87,19 @@ if st.button("Evaluate Prompt"):
                             "role": "user",
                             "content": prompt
                         }
-                    ]
+                    ],
+                    temperature=0.3,
+                    max_tokens=1000
                 )
 
                 response = ai_response.choices[0].message.content
 
-                if not response:
+                if response is None or response.strip() == "":
                     response = "Groq returned empty response."
 
-            # ---------------- OPENROUTER ---------------- #
-
-            elif model == "OpenRouter Mixtral":
-
-                ai_response = openrouter_client.chat.completions.create(
-                    model="meta-llama/llama-3-8b-instruct:free",
-                    messages=[
-                        {
-                            "role": "user",
-                            "content": prompt
-                        }
-                    ]
-                )
-
-                response = ai_response.choices[0].message.content
-
-                if not response:
-                    response = "OpenRouter returned empty response."
-
-            else:
-
-                response = "No response generated."
-
         except Exception as e:
+
+            st.error(f"{model} Error: {str(e)}")
 
             response = f"""
 Unable to generate AI response currently.
@@ -139,9 +115,25 @@ Technical Error:
             2
         )
 
-        # ---------------- REAL AI EVALUATION ---------------- #
+        # ---------------- HANDLE FAILED RESPONSES ---------------- #
 
-        judge_prompt = f"""
+        if (
+            "Unable to generate AI response" in response
+            or response.strip() == ""
+            or "empty response" in response.lower()
+        ):
+
+            correctness_score = 0
+            clarity_score = 0
+            completeness_score = 0
+            hallucination_score = 10
+            overall_score = 0
+
+        else:
+
+            # ---------------- AI JUDGE EVALUATION ---------------- #
+
+            judge_prompt = f"""
 You are an expert AI evaluator.
 
 Evaluate the following AI response.
@@ -167,76 +159,78 @@ Completeness: <score>
 Hallucination: <score>
 """
 
-        try:
+            try:
 
-            judge_response = co.chat(
-                model="command-a-03-2025",
-                message=judge_prompt
+                judge_response = co.chat(
+                    model="command-a-03-2025",
+                    message=judge_prompt
+                )
+
+                evaluation_text = judge_response.text
+
+                correctness_match = re.search(
+                    r"Correctness:\s*(\d+)",
+                    evaluation_text
+                )
+
+                clarity_match = re.search(
+                    r"Clarity:\s*(\d+)",
+                    evaluation_text
+                )
+
+                completeness_match = re.search(
+                    r"Completeness:\s*(\d+)",
+                    evaluation_text
+                )
+
+                hallucination_match = re.search(
+                    r"Hallucination:\s*(\d+)",
+                    evaluation_text
+                )
+
+                correctness_score = int(
+                    correctness_match.group(1)
+                ) if correctness_match else 5
+
+                clarity_score = int(
+                    clarity_match.group(1)
+                ) if clarity_match else 5
+
+                completeness_score = int(
+                    completeness_match.group(1)
+                ) if completeness_match else 5
+
+                hallucination_score = int(
+                    hallucination_match.group(1)
+                ) if hallucination_match else 5
+
+            except Exception:
+
+                correctness_score = 5
+                clarity_score = 5
+                completeness_score = 5
+                hallucination_score = 5
+
+            # ---------------- OVERALL SCORE ---------------- #
+
+            overall_score = round(
+                (
+                    correctness_score
+                    + clarity_score
+                    + completeness_score
+                    + (10 - hallucination_score)
+                ) / 4,
+                2
             )
 
-            evaluation_text = judge_response.text
-
-            correctness_match = re.search(
-                r"Correctness:\s*(\d+)",
-                evaluation_text
-            )
-
-            clarity_match = re.search(
-                r"Clarity:\s*(\d+)",
-                evaluation_text
-            )
-
-            completeness_match = re.search(
-                r"Completeness:\s*(\d+)",
-                evaluation_text
-            )
-
-            hallucination_match = re.search(
-                r"Hallucination:\s*(\d+)",
-                evaluation_text
-            )
-
-            correctness_score = int(
-                correctness_match.group(1)
-            ) if correctness_match else 5
-
-            clarity_score = int(
-                clarity_match.group(1)
-            ) if clarity_match else 5
-
-            completeness_score = int(
-                completeness_match.group(1)
-            ) if completeness_match else 5
-
-            hallucination_score = int(
-                hallucination_match.group(1)
-            ) if hallucination_match else 5
-
-        except Exception:
-
-            correctness_score = 5
-            clarity_score = 5
-            completeness_score = 5
-            hallucination_score = 5
-
-        # ---------------- REAL COST ESTIMATION ---------------- #
+        # ---------------- COST ESTIMATION ---------------- #
 
         estimated_cost = round(
             len(response.split()) * 0.00002,
             4
         )
 
-        # ---------------- OVERALL SCORE ---------------- #
-
-        overall_score = round(
-            (
-                correctness_score
-                + clarity_score
-                + completeness_score
-                + (10 - hallucination_score)
-            ) / 4,
-            2
-        )
+        # ---------------- STORE RESULTS ---------------- #
 
         results.append({
             "Model": model,
