@@ -67,7 +67,7 @@ if st.button("Evaluate Prompt"):
         try:
 
             model_ai = genai.GenerativeModel(
-                model_name="models/gemini-1.5-flash"
+                "gemini-pro"
             )
 
             ai_response = model_ai.generate_content(
