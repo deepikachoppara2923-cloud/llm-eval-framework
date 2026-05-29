@@ -1,9 +1,6 @@
 streamlit
 pandas
+plotly
 cohere
 groq
-openai
-requests
-anthropic
 google-generativeai
-plotly

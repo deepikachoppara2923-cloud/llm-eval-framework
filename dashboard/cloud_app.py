@@ -1,15 +1,116 @@
 import streamlit as st
 import pandas as pd
 import time
-import random
+import json
+import re
 import plotly.express as px
 
 from cohere import Client
 from groq import Groq
-from openai import OpenAI
-import anthropic
 import google.generativeai as genai
 
+genai.configure(
+    api_key=st.secrets["GEMINI_API_KEY"]
+)
+
+
+def evaluate_response(prompt, ai_response):
+
+    judge_model = genai.GenerativeModel(
+        "gemini-1.5-flash"
+    )
+
+    judge_prompt = f"""
+You are an expert LLM evaluator.
+
+Evaluate the following response.
+
+USER QUESTION:
+{prompt}
+
+MODEL RESPONSE:
+{ai_response}
+
+Score the response on:
+
+1. Correctness (0-10)
+2. Clarity (0-10)
+3. Completeness (0-10)
+4. Hallucination Risk (0-10 where lower is better)
+
+Return ONLY raw JSON.
+Do not use markdown.
+Do not use code blocks.
+Do not add explanations.
+
+Example:
+
+{{
+    "correctness": 8,
+    "clarity": 9,
+    "completeness": 8,
+    "hallucination": 2
+}}
+"""
+
+    try:
+
+        judge_start = time.time()
+
+        judge_response = judge_model.generate_content(
+            judge_prompt
+        )
+
+        judge_latency = round(
+            time.time() - judge_start,
+            2
+        )
+
+        evaluation_text = judge_response.text
+
+        json_match = re.search(
+            r"\{[\s\S]*?\}",
+            evaluation_text
+        )
+
+        if not json_match:
+            raise ValueError("No JSON returned by judge")
+
+        evaluation = json.loads(
+            json_match.group()
+        )
+
+        correctness = evaluation["correctness"]
+        clarity = evaluation["clarity"]
+        completeness = evaluation["completeness"]
+        hallucination = evaluation["hallucination"]
+
+    except Exception:
+
+        correctness = 0
+        clarity = 0
+        completeness = 0
+        hallucination = 10
+        judge_latency = 0
+
+    overall_score = round(
+        (
+            correctness * 0.4 +
+            clarity * 0.2 +
+            completeness * 0.2 +
+            (10 - hallucination) * 0.2
+        ),
+        2
+    )
+
+    return (
+        correctness,
+        clarity,
+        completeness,
+        hallucination,
+        overall_score,
+        judge_latency
+    )
 # ---------------- PAGE CONFIG ---------------- #
 
 st.set_page_config(
@@ -25,17 +126,7 @@ groq_client = Groq(
     api_key=st.secrets["GROQ_API_KEY"]
 )
 
-openai_client = OpenAI(
-    api_key=st.secrets["OPENAI_API_KEY"]
-)
 
-anthropic_client = anthropic.Anthropic(
-    api_key=st.secrets["ANTHROPIC_API_KEY"]
-)
-
-genai.configure(
-    api_key=st.secrets["GEMINI_API_KEY"]
-)
 
 # ---------------- UI ---------------- #
 
@@ -73,32 +164,34 @@ if st.button("Evaluate Prompt"):
         start_time = time.time()
 
         response = cohere_client.chat(
-            model="command-r-plus",
+            model="command-a-03-2025",
             message=prompt
         )
 
         ai_response = response.text
 
-        latency = round(time.time() - start_time, 2)
-
-        correctness = random.randint(8, 10)
-        clarity = random.randint(8, 10)
-        completeness = random.randint(8, 10)
-        hallucination = random.randint(1, 3)
-
-        overall_score = round(
-            (
-                correctness * 0.4 +
-                clarity * 0.2 +
-                completeness * 0.2 +
-                (10 - hallucination) * 0.2
-            ),
+        latency = round(
+            time.time() - start_time,
             2
         )
 
+        (
+            correctness,
+            clarity,
+            completeness,
+            hallucination,
+            overall_score,
+            judge_latency
+        ) = evaluate_response(
+            prompt,
+            ai_response
+        )
+
+
         results.append({
-            "Model": "Cohere Command R+",
+            "Model": "Cohere Command A",
             "Latency": latency,
+            "Judge Latency": judge_latency,
             "Correctness": correctness,
             "Clarity": clarity,
             "Completeness": completeness,
@@ -134,26 +227,28 @@ if st.button("Evaluate Prompt"):
 
         ai_response = response.choices[0].message.content
 
-        latency = round(time.time() - start_time, 2)
-
-        correctness = random.randint(8, 10)
-        clarity = random.randint(8, 10)
-        completeness = random.randint(8, 10)
-        hallucination = random.randint(1, 3)
-
-        overall_score = round(
-            (
-                correctness * 0.4 +
-                clarity * 0.2 +
-                completeness * 0.2 +
-                (10 - hallucination) * 0.2
-            ),
+        latency = round(
+            time.time() - start_time,
             2
         )
+
+        (
+            correctness,
+            clarity,
+            completeness,
+            hallucination,
+            overall_score,
+            judge_latency
+        ) = evaluate_response(
+            prompt,
+            ai_response
+        )
+        
 
         results.append({
             "Model": "Groq Llama 3.3 70B",
             "Latency": latency,
+            "Judge Latency": judge_latency,
             "Correctness": correctness,
             "Clarity": clarity,
             "Completeness": completeness,
@@ -168,116 +263,6 @@ if st.button("Evaluate Prompt"):
         st.error(f"Groq Error: {e}")
 
     # =========================================================
-    # OPENAI
-    # =========================================================
-
-    try:
-
-        start_time = time.time()
-
-        response = openai_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.3,
-            max_tokens=1000
-        )
-
-        ai_response = response.choices[0].message.content
-
-        latency = round(time.time() - start_time, 2)
-
-        correctness = random.randint(8, 10)
-        clarity = random.randint(8, 10)
-        completeness = random.randint(8, 10)
-        hallucination = random.randint(1, 3)
-
-        overall_score = round(
-            (
-                correctness * 0.4 +
-                clarity * 0.2 +
-                completeness * 0.2 +
-                (10 - hallucination) * 0.2
-            ),
-            2
-        )
-
-        results.append({
-            "Model": "OpenAI GPT-4o-mini",
-            "Latency": latency,
-            "Correctness": correctness,
-            "Clarity": clarity,
-            "Completeness": completeness,
-            "Hallucination Score": hallucination,
-            "Estimated Cost": 0.018,
-            "Overall Score": overall_score,
-            "Response": ai_response
-        })
-
-    except Exception as e:
-
-        st.error(f"OpenAI Error: {e}")
-
-    # =========================================================
-    # CLAUDE
-    # =========================================================
-
-    try:
-
-        start_time = time.time()
-
-        response = anthropic_client.messages.create(
-            model="claude-3-5-sonnet-20241022",
-            max_tokens=1000,
-            temperature=0.3,
-            messages=[
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ]
-        )
-
-        ai_response = response.content[0].text
-
-        latency = round(time.time() - start_time, 2)
-
-        correctness = random.randint(8, 10)
-        clarity = random.randint(8, 10)
-        completeness = random.randint(8, 10)
-        hallucination = random.randint(1, 3)
-
-        overall_score = round(
-            (
-                correctness * 0.4 +
-                clarity * 0.2 +
-                completeness * 0.2 +
-                (10 - hallucination) * 0.2
-            ),
-            2
-        )
-
-        results.append({
-            "Model": "Claude 3.5 Sonnet",
-            "Latency": latency,
-            "Correctness": correctness,
-            "Clarity": clarity,
-            "Completeness": completeness,
-            "Hallucination Score": hallucination,
-            "Estimated Cost": 0.02,
-            "Overall Score": overall_score,
-            "Response": ai_response
-        })
-
-    except Exception as e:
-
-        st.error(f"Claude Error: {e}")
-
-    # =========================================================
     # GEMINI
     # =========================================================
 
@@ -286,33 +271,35 @@ if st.button("Evaluate Prompt"):
         start_time = time.time()
 
         model_ai = genai.GenerativeModel(
-            "gemini-1.5-pro"
+            "gemini-1.5-flash"
         )
 
         response = model_ai.generate_content(prompt)
 
         ai_response = response.text
 
-        latency = round(time.time() - start_time, 2)
-
-        correctness = random.randint(8, 10)
-        clarity = random.randint(8, 10)
-        completeness = random.randint(8, 10)
-        hallucination = random.randint(1, 3)
-
-        overall_score = round(
-            (
-                correctness * 0.4 +
-                clarity * 0.2 +
-                completeness * 0.2 +
-                (10 - hallucination) * 0.2
-            ),
+        latency = round(
+            time.time() - start_time,
             2
         )
 
+        (
+            correctness,
+            clarity,
+            completeness,
+            hallucination,
+            overall_score,
+            judge_latency
+        ) = evaluate_response(
+            prompt,
+            ai_response
+        )
+
+        
         results.append({
-            "Model": "Gemini 1.5 Pro",
+            "Model": "Gemini 1.5 Flash",
             "Latency": latency,
+            "Judge Latency": judge_latency,
             "Correctness": correctness,
             "Clarity": clarity,
             "Completeness": completeness,
@@ -342,7 +329,21 @@ if st.button("Evaluate Prompt"):
 
         st.subheader("📊 Model Comparison")
 
-        st.dataframe(df.drop(columns=["Response"]))
+        st.dataframe(
+            df[
+                [
+                    "Model",
+                    "Latency",
+                    "Judge Latency",
+                    "Correctness",
+                    "Clarity",
+                    "Completeness",
+                    "Hallucination Score",
+                    "Overall Score"
+                ]
+            ],
+            use_container_width=True
+        )
 
         best_model = df.sort_values(
             by="Overall Score",
@@ -353,12 +354,32 @@ if st.button("Evaluate Prompt"):
 
         st.success(best_model["Model"])
 
-        col1, col2, col3, col4 = st.columns(4)
+        col1, col2, col3, col4, col5 = st.columns(5)
 
-        col1.metric("Latency", f"{best_model['Latency']} sec")
-        col2.metric("Hallucination", best_model["Hallucination Score"])
-        col3.metric("Overall Score", best_model["Overall Score"])
-        col4.metric("Estimated Cost", f"${best_model['Estimated Cost']}")
+        col1.metric(
+            "Latency",
+            f"{best_model['Latency']} sec"
+        )
+
+        col2.metric(
+            "Judge Latency",
+            f"{best_model['Judge Latency']} sec"
+        )
+
+        col3.metric(
+            "Hallucination",
+            best_model["Hallucination Score"]
+        )
+
+        col4.metric(
+            "Overall Score",
+            best_model["Overall Score"]
+        )
+
+        col5.metric(
+            "Estimated Cost",
+            f"${best_model['Estimated Cost']}"
+        )
 
         st.subheader("🎭 Best Response")
 
@@ -397,6 +418,20 @@ if st.button("Evaluate Prompt"):
             x="Model",
             y="Hallucination Score",
             title="Hallucination Score by Model"
+        )
+
+        st.subheader("⚖️ Judge Latency Comparison")
+
+        fig4 = px.bar(
+            df,
+            x="Model",
+            y="Judge Latency",
+            title="Judge Latency by Model"
+        )
+
+        st.plotly_chart(
+            fig4,
+            use_container_width=True
         )
 
         st.plotly_chart(fig3, use_container_width=True)
