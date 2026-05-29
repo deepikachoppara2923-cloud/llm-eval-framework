@@ -203,7 +203,8 @@ if st.button("Evaluate Prompt"):
 
     except Exception as e:
 
-        st.error(f"Cohere Error: {e}")
+        st.error(f"Cohere Error")
+        st.exception(e)
 
     # =========================================================
     # GROQ
@@ -260,7 +261,8 @@ if st.button("Evaluate Prompt"):
 
     except Exception as e:
 
-        st.error(f"Groq Error: {e}")
+        st.error(f"Groq Error")
+        st.exception(e)
 
     # =========================================================
     # GEMINI
@@ -311,7 +313,8 @@ if st.button("Evaluate Prompt"):
 
     except Exception as e:
 
-        st.error(f"Gemini Error: {e}")
+        st.error(f"Gemini Error")
+        st.exception(e)
 
     # =========================================================
     # RESULTS
@@ -324,6 +327,8 @@ if st.button("Evaluate Prompt"):
     else:
 
         st.success("Evaluation completed successfully!")
+
+        st.write(results)
 
         df = pd.DataFrame(results)
 
