@@ -273,7 +273,7 @@ if st.button("Evaluate Prompt"):
         start_time = time.time()
 
         model_ai = genai.GenerativeModel(
-            "gemini-1.5-flash"
+            "gemini-2.0-flash"
         )
 
         response = model_ai.generate_content(prompt)
@@ -299,7 +299,7 @@ if st.button("Evaluate Prompt"):
 
         
         results.append({
-            "Model": "Gemini 1.5 Flash",
+            "Model": "gemini-2.0-flash",
             "Latency": latency,
             "Judge Latency": judge_latency,
             "Correctness": correctness,
