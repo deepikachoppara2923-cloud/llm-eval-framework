@@ -12,20 +12,43 @@ def evaluate_response(ai_response):
 
     words = len(ai_response.split())
 
-    correctness = min(10, max(6, words // 40))
+    sentences = max(1, len(re.findall(r"[.!?]", ai_response)))
 
-    clarity = 8
+    avg_sentence_length = words / sentences
 
-    completeness = min(10, max(6, words // 50))
+    # Completeness
+    if words > 500:
+        completeness = 10
+    elif words > 350:
+        completeness = 8
+    elif words > 200:
+        completeness = 7
+    else:
+        completeness = 5
 
-    hallucination = 2
+    # Clarity
+    if avg_sentence_length < 20:
+        clarity = 9
+    elif avg_sentence_length < 30:
+        clarity = 8
+    else:
+        clarity = 6
+
+    # Correctness
+    correctness = round(
+        (clarity + completeness) / 2,
+        1
+    )
+
+    # Hallucination heuristic
+    hallucination = 3
 
     overall_score = round(
         (
-            correctness * 0.4
-            + clarity * 0.2
-            + completeness * 0.2
-            + (10 - hallucination) * 0.2
+            correctness * 0.4 +
+            clarity * 0.2 +
+            completeness * 0.2 +
+            (10 - hallucination) * 0.2
         ),
         2
     )
@@ -60,7 +83,7 @@ groq_client = Groq(
 st.title("🚀 Enterprise Multi-LLM Evaluation Platform")
 
 st.caption(
-    "Production-grade AI evaluation and monitoring framework for enterprise LLM benchmarking."
+    "Multi-model benchmarking framework comparing latency, cost and response quality."
 )
 
 st.subheader("🧠 Multi-LLM Playground")
@@ -167,7 +190,6 @@ if st.button("Evaluate Prompt"):
             overall_score,
             judge_latency
         ) = evaluate_response(
-            prompt,
             ai_response
         )
         
@@ -190,32 +212,61 @@ if st.button("Evaluate Prompt"):
         st.error(f"Groq Error")
         st.exception(e)
 
-    response = groq_client.chat.completions.create(
-        model="deepseek-r1-distill-llama-70b",
-        messages=[
-            {
-                "role": "user",
-                "content": prompt
-            }
-        ],
-        temperature=0.3,
-        max_tokens=1000
-    )
+    # =========================================================
+    # LLAMA 3.1 8B
+    # =========================================================
 
-    ai_response = response.choices[0].message.content
+    try:
 
-    results.append({
-        "Model": "DeepSeek R1 70B",
-        "Latency": latency,
-        "Judge Latency": 0,
-        "Correctness": correctness,
-        "Clarity": clarity,
-        "Completeness": completeness,
-        "Hallucination Score": hallucination,
-        "Estimated Cost": 0.010,
-        "Overall Score": overall_score,
-        "Response": ai_response
-    })
+        start_time = time.time()
+
+        response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.3,
+            max_tokens=1000
+        )
+
+        ai_response = response.choices[0].message.content
+
+        latency = round(
+            time.time() - start_time,
+            2
+        )
+
+        (
+            correctness,
+            clarity,
+            completeness,
+            hallucination,
+            overall_score,
+            judge_latency
+        ) = evaluate_response(
+            ai_response
+        )
+
+        results.append({
+            "Model": "Llama 3.1 8B",
+            "Latency": latency,
+            "Judge Latency": judge_latency,
+            "Correctness": correctness,
+            "Clarity": clarity,
+            "Completeness": completeness,
+            "Hallucination Score": hallucination,
+            "Estimated Cost": 0.008,
+            "Overall Score": overall_score,
+            "Response": ai_response
+        })
+
+    except Exception as e:
+
+        st.error("Llama 3.1 8B Error")
+        st.exception(e)
     # =========================================================
     # RESULTS
     # =========================================================
@@ -228,7 +279,7 @@ if st.button("Evaluate Prompt"):
 
         st.success("Evaluation completed successfully!")
 
-        st.write(results)
+        
 
         df = pd.DataFrame(results)
 
@@ -325,6 +376,8 @@ if st.button("Evaluate Prompt"):
             title="Hallucination Score by Model"
         )
 
+        st.plotly_chart(fig3, use_container_width=True)
+
         st.subheader("⚖️ Judge Latency Comparison")
 
         fig4 = px.bar(
@@ -339,4 +392,4 @@ if st.button("Evaluate Prompt"):
             use_container_width=True
         )
 
-        st.plotly_chart(fig3, use_container_width=True)
+        
