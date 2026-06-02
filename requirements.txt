@@ -3,4 +3,3 @@ pandas
 plotly
 cohere
 groq
-google-generativeai

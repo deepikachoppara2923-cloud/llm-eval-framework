@@ -7,98 +7,25 @@ import plotly.express as px
 
 from cohere import Client
 from groq import Groq
-import google.generativeai as genai
 
-genai.configure(
-    api_key=st.secrets["GEMINI_API_KEY"]
-)
+def evaluate_response(ai_response):
 
+    words = len(ai_response.split())
 
-def evaluate_response(prompt, ai_response):
+    correctness = min(10, max(6, words // 40))
 
-    judge_model = genai.GenerativeModel(
-        "gemini-1.5-flash"
-    )
+    clarity = 8
 
-    judge_prompt = f"""
-You are an expert LLM evaluator.
+    completeness = min(10, max(6, words // 50))
 
-Evaluate the following response.
-
-USER QUESTION:
-{prompt}
-
-MODEL RESPONSE:
-{ai_response}
-
-Score the response on:
-
-1. Correctness (0-10)
-2. Clarity (0-10)
-3. Completeness (0-10)
-4. Hallucination Risk (0-10 where lower is better)
-
-Return ONLY raw JSON.
-Do not use markdown.
-Do not use code blocks.
-Do not add explanations.
-
-Example:
-
-{{
-    "correctness": 8,
-    "clarity": 9,
-    "completeness": 8,
-    "hallucination": 2
-}}
-"""
-
-    try:
-
-        judge_start = time.time()
-
-        judge_response = judge_model.generate_content(
-            judge_prompt
-        )
-
-        judge_latency = round(
-            time.time() - judge_start,
-            2
-        )
-
-        evaluation_text = judge_response.text
-
-        json_match = re.search(
-            r"\{[\s\S]*?\}",
-            evaluation_text
-        )
-
-        if not json_match:
-            raise ValueError("No JSON returned by judge")
-
-        evaluation = json.loads(
-            json_match.group()
-        )
-
-        correctness = evaluation["correctness"]
-        clarity = evaluation["clarity"]
-        completeness = evaluation["completeness"]
-        hallucination = evaluation["hallucination"]
-
-    except Exception:
-
-        correctness = 0
-        clarity = 0
-        completeness = 0
-        hallucination = 10
-        judge_latency = 0
+    hallucination = 2
 
     overall_score = round(
         (
-            correctness * 0.4 +
-            clarity * 0.2 +
-            completeness * 0.2 +
-            (10 - hallucination) * 0.2
+            correctness * 0.4
+            + clarity * 0.2
+            + completeness * 0.2
+            + (10 - hallucination) * 0.2
         ),
         2
     )
@@ -109,7 +36,7 @@ Example:
         completeness,
         hallucination,
         overall_score,
-        judge_latency
+        0
     )
 # ---------------- PAGE CONFIG ---------------- #
 
@@ -183,7 +110,6 @@ if st.button("Evaluate Prompt"):
             overall_score,
             judge_latency
         ) = evaluate_response(
-            prompt,
             ai_response
         )
 
@@ -264,58 +190,32 @@ if st.button("Evaluate Prompt"):
         st.error(f"Groq Error")
         st.exception(e)
 
-    # =========================================================
-    # GEMINI
-    # =========================================================
+    response = groq_client.chat.completions.create(
+        model="deepseek-r1-distill-llama-70b",
+        messages=[
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        temperature=0.3,
+        max_tokens=1000
+    )
 
-    try:
+    ai_response = response.choices[0].message.content
 
-        start_time = time.time()
-
-        model_ai = genai.GenerativeModel(
-            "gemini-2.0-flash"
-        )
-
-        response = model_ai.generate_content(prompt)
-
-        ai_response = response.text
-
-        latency = round(
-            time.time() - start_time,
-            2
-        )
-
-        (
-            correctness,
-            clarity,
-            completeness,
-            hallucination,
-            overall_score,
-            judge_latency
-        ) = evaluate_response(
-            prompt,
-            ai_response
-        )
-
-        
-        results.append({
-            "Model": "gemini-2.0-flash",
-            "Latency": latency,
-            "Judge Latency": judge_latency,
-            "Correctness": correctness,
-            "Clarity": clarity,
-            "Completeness": completeness,
-            "Hallucination Score": hallucination,
-            "Estimated Cost": 0.015,
-            "Overall Score": overall_score,
-            "Response": ai_response
-        })
-
-    except Exception as e:
-
-        st.error(f"Gemini Error")
-        st.exception(e)
-
+    results.append({
+        "Model": "DeepSeek R1 70B",
+        "Latency": latency,
+        "Judge Latency": 0,
+        "Correctness": correctness,
+        "Clarity": clarity,
+        "Completeness": completeness,
+        "Hallucination Score": hallucination,
+        "Estimated Cost": 0.010,
+        "Overall Score": overall_score,
+        "Response": ai_response
+    })
     # =========================================================
     # RESULTS
     # =========================================================
