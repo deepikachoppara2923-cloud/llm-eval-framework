@@ -390,17 +390,18 @@ if st.button("Evaluate Prompt"):
                     "Reasoning",
                     "Overall Score"
                 ]
-                st.subheader("🧑‍⚖️ Judge Feedback by Model")
+            ],
+            use_container_width=True
+        )
 
-                st.dataframe(
-                    df[
-                        [
-                            "Model",
-                            "Judge Feedback"
-                        ]
-                    ],
-                    use_container_width=True
-                )
+        st.subheader("🧑‍⚖️ Judge Feedback by Model")
+
+        st.dataframe(
+            df[
+                [
+                    "Model",
+                    "Judge Feedback"
+                ]
             ],
             use_container_width=True
         )
