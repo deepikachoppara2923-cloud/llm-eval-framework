@@ -8,47 +8,124 @@ import plotly.express as px
 from cohere import Client
 from groq import Groq
 
-def evaluate_response(ai_response):
+def evaluate_response(prompt, ai_response):
 
-    words = len(ai_response.split())
+    try:
 
-    sentences = max(1, len(re.findall(r"[.!?]", ai_response)))
+        judge_start = time.time()
 
-    avg_sentence_length = words / sentences
+        judge_prompt = f"""
+You are a strict enterprise LLM evaluator.
 
-    # Completeness
-    if words > 500:
-        completeness = 10
-    elif words > 350:
-        completeness = 8
-    elif words > 200:
-        completeness = 7
-    else:
+Evaluate the response critically.
+
+Do NOT give high scores by default.
+
+A score of 10 should be extremely rare.
+
+Penalize:
+- Missing information
+- Incorrect facts
+- Weak reasoning
+- Unsupported claims
+- Repetitive content
+
+USER QUESTION:
+{prompt}
+
+MODEL RESPONSE:
+{ai_response}
+
+Evaluate:
+
+- correctness (0-10)
+- clarity (0-10)
+- completeness (0-10)
+- hallucination (0-10, lower is better)
+- reasoning (0-10)
+
+Return ONLY valid JSON:
+
+{{
+    "correctness": 0,
+    "clarity": 0,
+    "completeness": 0,
+    "hallucination": 0,
+    "reasoning": 0,
+    "feedback": ""
+}}
+"""
+
+        judge_response = groq_client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[
+                {
+                    "role": "user",
+                    "content": judge_prompt
+                }
+            ],
+            temperature=0
+        )
+
+        judge_latency = round(
+            time.time() - judge_start,
+            2
+        )
+
+        evaluation_text = (
+            judge_response
+            .choices[0]
+            .message
+            .content
+        )
+
+        json_match = re.search(
+            r"\{[\s\S]*?\}",
+            evaluation_text
+        )
+
+        evaluation = json.loads(
+            json_match.group()
+        )
+
+        correctness = float(
+            evaluation["correctness"]
+        )
+
+        clarity = float(
+            evaluation["clarity"]
+        )
+
+        completeness = float(
+            evaluation["completeness"]
+        )
+
+        hallucination = float(
+            evaluation["hallucination"]
+        )
+
+        reasoning = float(
+            evaluation["reasoning"]
+        )
+
+        feedback = evaluation["feedback"]
+
+    except Exception:
+
+        correctness = 5
+        clarity = 5
         completeness = 5
-
-    # Clarity
-    if avg_sentence_length < 20:
-        clarity = 9
-    elif avg_sentence_length < 30:
-        clarity = 8
-    else:
-        clarity = 6
-
-    # Correctness
-    correctness = round(
-        (clarity + completeness) / 2,
-        1
-    )
-
-    # Hallucination heuristic
-    hallucination = 3
+        hallucination = 5
+        reasoning = 5
+        judge_latency = 0
 
     overall_score = round(
         (
-            correctness * 0.4 +
-            clarity * 0.2 +
-            completeness * 0.2 +
-            (10 - hallucination) * 0.2
+            correctness * 0.25 +
+            clarity * 0.20 +
+            completeness * 0.25 +
+            reasoning * 0.20 +
+            (10 - hallucination) * 0.10
         ),
         2
     )
@@ -58,8 +135,9 @@ def evaluate_response(ai_response):
         clarity,
         completeness,
         hallucination,
+        reasoning,
         overall_score,
-        0
+        judge_latency
     )
 # ---------------- PAGE CONFIG ---------------- #
 
@@ -83,7 +161,7 @@ groq_client = Groq(
 st.title("🚀 Enterprise Multi-LLM Evaluation Platform")
 
 st.caption(
-    "Multi-model benchmarking framework comparing latency, cost and response quality."
+    "Enterprise Multi-LLM Evaluation and Benchmarking Platform using LLM-as-a-Judge."
 )
 
 st.subheader("🧠 Multi-LLM Playground")
@@ -130,9 +208,12 @@ if st.button("Evaluate Prompt"):
             clarity,
             completeness,
             hallucination,
+            reasoning,
+            feedback,
             overall_score,
             judge_latency
         ) = evaluate_response(
+            prompt,
             ai_response
         )
 
@@ -145,6 +226,8 @@ if st.button("Evaluate Prompt"):
             "Clarity": clarity,
             "Completeness": completeness,
             "Hallucination Score": hallucination,
+            "Reasoning": reasoning,
+            "Judge Feedback": feedback,
             "Estimated Cost": 0.016,
             "Overall Score": overall_score,
             "Response": ai_response
@@ -187,9 +270,12 @@ if st.button("Evaluate Prompt"):
             clarity,
             completeness,
             hallucination,
+            reasoning,
+            feedback,
             overall_score,
             judge_latency
         ) = evaluate_response(
+            prompt,
             ai_response
         )
         
@@ -202,6 +288,8 @@ if st.button("Evaluate Prompt"):
             "Clarity": clarity,
             "Completeness": completeness,
             "Hallucination Score": hallucination,
+            "Reasoning": reasoning,
+            "Judge Feedback": feedback,
             "Estimated Cost": 0.012,
             "Overall Score": overall_score,
             "Response": ai_response
@@ -221,7 +309,7 @@ if st.button("Evaluate Prompt"):
         start_time = time.time()
 
         response = groq_client.chat.completions.create(
-            model="llama-3.3-70b-versatile",
+            model="llama-3.1-8b-instant",
             messages=[
                 {
                     "role": "user",
@@ -244,9 +332,12 @@ if st.button("Evaluate Prompt"):
             clarity,
             completeness,
             hallucination,
+            reasoning,
+            feedback,
             overall_score,
             judge_latency
         ) = evaluate_response(
+            prompt,
             ai_response
         )
 
@@ -258,6 +349,8 @@ if st.button("Evaluate Prompt"):
             "Clarity": clarity,
             "Completeness": completeness,
             "Hallucination Score": hallucination,
+            "Reasoning": reasoning,
+            "Judge Feedback": feedback,
             "Estimated Cost": 0.008,
             "Overall Score": overall_score,
             "Response": ai_response
@@ -295,6 +388,7 @@ if st.button("Evaluate Prompt"):
                     "Clarity",
                     "Completeness",
                     "Hallucination Score",
+                    "Reasoning",
                     "Overall Score"
                 ]
             ],
@@ -341,7 +435,11 @@ if st.button("Evaluate Prompt"):
 
         with st.expander("View Full Response", expanded=True):
 
-            st.write(best_model["Response"])
+            st.subheader("🧑‍⚖️ Judge Feedback")
+
+            st.info(
+                best_model["Judge Feedback"]
+            )
 
         # ---------------- CHARTS ---------------- #
 
