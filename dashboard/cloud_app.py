@@ -230,7 +230,6 @@ if st.button("Evaluate Prompt"):
             "Hallucination Score": hallucination,
             "Reasoning": reasoning,
             "Judge Feedback": feedback,
-            "Estimated Cost (Approx.)": 0.016,
             "Overall Score": overall_score,
             "Response": ai_response
         })
@@ -292,7 +291,6 @@ if st.button("Evaluate Prompt"):
             "Hallucination Score": hallucination,
             "Reasoning": reasoning,
             "Judge Feedback": feedback,
-            "Estimated Cost (Approx.)": 0.012,
             "Overall Score": overall_score,
             "Response": ai_response
         })
@@ -353,7 +351,6 @@ if st.button("Evaluate Prompt"):
             "Hallucination Score": hallucination,
             "Reasoning": reasoning,
             "Judge Feedback": feedback,
-            "Estimated Cost (Approx.)": 0.008,
             "Overall Score": overall_score,
             "Response": ai_response
         })
@@ -415,7 +412,7 @@ if st.button("Evaluate Prompt"):
         """
         )
 
-        col1, col2, col3, col4, col5 = st.columns(5)
+        col1, col2, col3, col4 = st.columns(4)
 
         col1.metric(
             "Latency",
@@ -435,11 +432,6 @@ if st.button("Evaluate Prompt"):
         col4.metric(
             "Overall Score",
             best_model["Overall Score"]
-        )
-
-        col5.metric(
-            "Estimated Cost (Approx.)",
-            f"${best_model['Estimated Cost (Approx.)']}"
         )
 
         st.subheader("🎭 Best Response")
