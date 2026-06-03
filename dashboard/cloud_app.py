@@ -388,9 +388,19 @@ if st.button("Evaluate Prompt"):
                     "Completeness",
                     "Hallucination Score",
                     "Reasoning",
-                    "Judge Feedback"
                     "Overall Score"
                 ]
+                st.subheader("🧑‍⚖️ Judge Feedback by Model")
+
+                st.dataframe(
+                    df[
+                        [
+                            "Model",
+                            "Judge Feedback"
+                        ]
+                    ],
+                    use_container_width=True
+                )
             ],
             use_container_width=True
         )
