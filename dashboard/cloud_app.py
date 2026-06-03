@@ -117,6 +117,7 @@ Return ONLY valid JSON:
         completeness = 5
         hallucination = 5
         reasoning = 5
+        feedback = "Judge evaluation failed."
         judge_latency = 0
 
     overall_score = round(
@@ -136,6 +137,7 @@ Return ONLY valid JSON:
         completeness,
         hallucination,
         reasoning,
+        feedback,
         overall_score,
         judge_latency
     )
@@ -228,7 +230,7 @@ if st.button("Evaluate Prompt"):
             "Hallucination Score": hallucination,
             "Reasoning": reasoning,
             "Judge Feedback": feedback,
-            "Estimated Cost": 0.016,
+            "Estimated Cost (Approx.)": 0.016,
             "Overall Score": overall_score,
             "Response": ai_response
         })
@@ -290,7 +292,7 @@ if st.button("Evaluate Prompt"):
             "Hallucination Score": hallucination,
             "Reasoning": reasoning,
             "Judge Feedback": feedback,
-            "Estimated Cost": 0.012,
+            "Estimated Cost (Approx.)": 0.012,
             "Overall Score": overall_score,
             "Response": ai_response
         })
@@ -351,7 +353,7 @@ if st.button("Evaluate Prompt"):
             "Hallucination Score": hallucination,
             "Reasoning": reasoning,
             "Judge Feedback": feedback,
-            "Estimated Cost": 0.008,
+            "Estimated Cost (Approx.)": 0.008,
             "Overall Score": overall_score,
             "Response": ai_response
         })
@@ -427,19 +429,19 @@ if st.button("Evaluate Prompt"):
         )
 
         col5.metric(
-            "Estimated Cost",
-            f"${best_model['Estimated Cost']}"
+            "Estimated Cost (Approx.)",
+            f"${best_model['Estimated Cost (Approx.)']}"
         )
 
         st.subheader("🎭 Best Response")
 
         with st.expander("View Full Response", expanded=True):
 
+            st.write(best_model["Response"])
+
             st.subheader("🧑‍⚖️ Judge Feedback")
 
-            st.info(
-                best_model["Judge Feedback"]
-            )
+            st.info(best_model["Judge Feedback"])
 
         # ---------------- CHARTS ---------------- #
 
@@ -472,6 +474,20 @@ if st.button("Evaluate Prompt"):
             x="Model",
             y="Hallucination Score",
             title="Hallucination Score by Model"
+        )
+
+        st.subheader("🧩 Reasoning Comparison")
+
+        fig5 = px.bar(
+            df,
+            x="Model",
+            y="Reasoning",
+            title="Reasoning Score by Model"
+        )
+
+        st.plotly_chart(
+            fig5,
+            use_container_width=True
         )
 
         st.plotly_chart(fig3, use_container_width=True)
