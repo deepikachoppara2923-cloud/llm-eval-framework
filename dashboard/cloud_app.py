@@ -391,6 +391,7 @@ if st.button("Evaluate Prompt"):
                     "Completeness",
                     "Hallucination Score",
                     "Reasoning",
+                    "Judge Feedback"
                     "Overall Score"
                 ]
             ],
@@ -405,6 +406,14 @@ if st.button("Evaluate Prompt"):
         st.subheader("🏆 Best Model")
 
         st.success(best_model["Model"])
+        st.info(
+            f"""
+        Reasoning: {best_model['Reasoning']}
+        Correctness: {best_model['Correctness']}
+        Completeness: {best_model['Completeness']}
+        Hallucination: {best_model['Hallucination Score']}
+        """
+        )
 
         col1, col2, col3, col4, col5 = st.columns(5)
 
